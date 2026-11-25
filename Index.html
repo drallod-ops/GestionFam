@@ -1,7 +1,15 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<title>Gestion SCI</title>
+<title>Gestion Fam</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gestion Fam">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FFE3B8">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
@@ -144,7 +152,12 @@ details summary::-webkit-details-marker{display:none}
 <div id="toast" role="status"></div>
 
 <script>
-const TOKEN = <?!= JSON.stringify(token) ?>;
+// Adresse de l'API Apps Script (Déployer → Gérer les déploiements → URL de l'application Web).
+const API_URL = 'https:\/\/script.google.com/macros/s/AKfycbw0cP8mULwMzQ-rpF3x1YNmGo_B4KSbilAxNZDfin0AOZ1YC8W2rM_b6nD936eBOLYI/exec';
+// Lien personnel : ?t=jeton dans l'adresse, gardé aussi sur le téléphone au cas où l'icône s'ouvre sans lui.
+const TOKEN = (() => { const u = new URLSearchParams(location.search).get('t'), ok = /^[A-Za-z0-9-]{8,64}$/;
+  try { if (u && ok.test(u)) localStorage.setItem('jeton', u); const g = u || localStorage.getItem('jeton'); return ok.test(g || '') ? g : ''; }
+  catch (e) { return u && ok.test(u) ? u : ''; } })();
 const MOIS_C = ['J','F','M','A','M','J','J','A','S','O','N','D'];
 // Droits réglables par Steve : qui a quel menu ou quelle action
 const DROITS = [
@@ -171,10 +184,26 @@ const auj = () => ymdLocal(new Date());
 const COULEURS = { Steve:'#1F3A5F', Maman:'#C2577A', Papa:'#3E8E7E', Laetitia:'#E07A3F', Vinciane:'#7A5CC2', Camille:'#2E86C1', Claude:'#8C9AAB' };
 const av = (p, petit) => `<span class="av ${petit?'p':''}" style="background:${COULEURS[p]||'#8C9AAB'}" aria-hidden="true">${esc((p||'?').charAt(0))}</span>`;
 function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',3200); }
-const run = (f, ...a) => new Promise((ok, ko) => google.script.run
-  .withSuccessHandler(r => ok(r == null ? null : JSON.parse(r)))
-  .withFailureHandler(e => { const m = String((e && e.message) || e).replace(/^(Error|Exception|Erreur)\s*:\s*/i, ''); toast(m); ko(e); })
-  .api(f, JSON.stringify(a)));
+// Plus jamais de « Chargement… » sans fin : au bout de 30 s ou en cas d'erreur, le message s'affiche à l'écran.
+function bloque(m){ if (!/Chargement/.test($('vue').textContent)) return toast(m);
+  $('vue').innerHTML = `<div class="c"><p class="t">Ça ne charge pas</p><p>${esc(m)}</p><p class="s">Fais une capture d’écran et envoie-la à Steve.</p>
+    <div class="row"><button onclick="location.reload()">Réessayer</button></div></div>`; }
+window.addEventListener('error', e => bloque('Erreur dans la page : ' + e.message));
+// text/plain : pas de contrôle CORS préalable, Apps Script accepte la demande telle quelle.
+async function run(f, ...a){
+  const stop = new AbortController(), h = setTimeout(() => stop.abort(), 30000);
+  let r;
+  try {
+    const rep = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ f, args: a }), signal: stop.signal, redirect: 'follow' });
+    r = await rep.json();
+  } catch (e) {
+    const m = e.name === 'AbortError' ? 'Le serveur ne répond pas (' + f + '). Vérifie la connexion, puis réessaie.' : 'Impossible de joindre le serveur. Vérifie la connexion.';
+    bloque(m); throw e;
+  } finally { clearTimeout(h); }
+  if (r.err) { const m = String(r.err).replace(/^(Error|Exception|Erreur)\s*:\s*/i, ''); bloque(m); throw new Error(m); }
+  return r.ok;
+}
 const profil = () => S.as || S.moi;
 const peut = (cle, p) => ((S.droits || {})[cle] || []).includes(p || profil());
 
@@ -194,7 +223,7 @@ async function demarrer(){
   const r = await run('init', TOKEN);
   if (r.state === 'nouveau') return ecranDemande();
   if (r.state !== 'ok') {
-    $('haut').innerHTML = `<h1>Gestion SCI</h1>`;
+    $('haut').innerHTML = `<h1>Gestion Fam</h1>`;
     $('vue').innerHTML = `<div class="c"><p class="t">${r.state === 'En attente' ? 'Demande envoyée' : 'Pas d’accès'}</p>
       <p>${r.state === 'En attente'
         ? 'Ajoute maintenant cette page à l’écran d’accueil : bouton Partager, puis « Sur l’écran d’accueil ». Steve va valider ta demande, ensuite rouvre l’app depuis l’icône.'
@@ -212,10 +241,12 @@ function ecranDemande(){
     <div class="row"><button onclick="demander()">Demander l’accès</button></div></div>`;
 }
 async function demander(){
-  const url = await run('demanderAcces', $('nom').value);
+  const jeton = await run('demanderAcces', $('nom').value);
+  try { localStorage.setItem('jeton', jeton); } catch (e) {}
+  const url = location.origin + location.pathname + '?t=' + encodeURIComponent(jeton);
   $('vue').innerHTML = `<div class="c"><p class="t">Demande envoyée</p>
     <p>Appuie sur « Continuer » : tu arrives sur ta page personnelle. Ajoute-la à l’écran d’accueil (Partager, puis « Sur l’écran d’accueil »).</p>
-    <div class="row"><a href="${esc(url)}" target="_top"><button tabindex="-1">Continuer</button></a></div></div>`;
+    <div class="row"><a href="${esc(url)}"><button tabindex="-1">Continuer</button></a></div></div>`;
 }
 
 // ---------- Navigation ----------
@@ -445,10 +476,10 @@ function situation(M){
 }
 function alerteEnvois(M, X){
   if (!X.enRetard || !M.controle) return ''; // seulement pour qui contrôle les envois
-  const msg = 'Petit rappel 🙂 Il reste ' + X.nonEnv + ' courrier' + (X.nonEnv > 1 ? 's' : '') + ' du mois à envoyer dans l’app Gestion SCI. Merci ' + M.envoyeur + ' !';
+  const msg = 'Petit rappel 🙂 Il reste ' + X.nonEnv + ' courrier' + (X.nonEnv > 1 ? 's' : '') + ' du mois à envoyer dans l’app Gestion Fam. Merci ' + M.envoyeur + ' !';
   return `<div class="alerte">⚠️ ${X.nonEnv} courrier${X.nonEnv > 1 ? 's' : ''} pas encore envoyé${X.nonEnv > 1 ? 's' : ''} par ${esc(M.envoyeur)}
     <div class="s">Les envois devaient être faits le 7.</div>
-    <div class="row"><a href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener"><button tabindex="-1">Prévenir sur WhatsApp</button></a></div></div>`;
+    <div class="row"><a href="https:\/\/wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener"><button tabindex="-1">Prévenir sur WhatsApp</button></a></div></div>`;
 }
 
 // ---------- Le mois ----------
