@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<title>Gestion SCI</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{
+  --fond:#E6F0EC; --carte:#FFFFFF; --texte:#1E2A38; --doux:#5F6B78; --trait:#DCE3E0;
+  --encre:#1F3A5F; --soleil:#F4B63F; --aube:#FFE3B8;
+  --paye:#2F9E6B; --partiel:#D98A12; --impaye:#D64545; --avenir:#8C9AAB;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --fond:#10161F; --carte:#1E2836; --texte:#F2F5F8; --doux:#B4BFCC; --trait:#334155;
+    --encre:#8FB4E3; --soleil:#F4C25F; --aube:#2A2418; color-scheme: dark; }
+}
+:root[data-theme="dark"]{ --fond:#10161F; --carte:#1E2836; --texte:#F2F5F8; --doux:#B4BFCC; --trait:#334155;
+  --encre:#8FB4E3; --soleil:#F4C25F; --aube:#2A2418; color-scheme: dark; }
+:root[data-ambiance="lavande"]{--aube:#E7DCFA;--fond:#EFECF7;--encre:#4B3B8F;--soleil:#F3C27A;--carte:#FFFFFF;--texte:#1E2A38;--doux:#5F6B78;--trait:#DCE3E0;color-scheme:light}
+:root[data-ambiance="ocean"]{--aube:#C9E8F5;--fond:#E6F1F4;--encre:#155E75;--soleil:#F2C14E;--carte:#FFFFFF;--texte:#1E2A38;--doux:#5F6B78;--trait:#DCE3E0;color-scheme:light}
+:root[data-ambiance="jardin"]{--aube:#DDEFC9;--fond:#EEF4E6;--encre:#2F5D3A;--soleil:#F0B94A;--carte:#FFFFFF;--texte:#1E2A38;--doux:#5F6B78;--trait:#DCE3E0;color-scheme:light}
+:root[data-ambiance="nuit"]{--fond:#10161F;--carte:#1E2836;--texte:#F2F5F8;--doux:#B4BFCC;--trait:#334155;--encre:#8FB4E3;--soleil:#F4C25F;--aube:#22304A;color-scheme:dark}
+:root[data-ambiance="nuit"] button:not(.leger):not(.lien):not(.themes button),:root[data-ambiance="nuit"] .seg button.on{color:#0E1520}
+@media (prefers-color-scheme: dark){ :root[data-ambiance="aube"] button:not(.leger):not(.lien):not(.themes button),:root[data-ambiance="aube"] .seg button.on{color:#0E1520} }
+.themes{display:flex;gap:10px;margin-top:10px}
+.themes button{width:40px;height:40px;border-radius:50%;padding:0;border:3px solid var(--carte);box-shadow:0 0 0 1px var(--trait)}
+.themes button.on{box-shadow:0 0 0 3px var(--encre)}
+.outils{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,var(--aube) 0,var(--fond) 340px) no-repeat,var(--fond);min-height:100vh;color:var(--texte);
+  font:17px/1.4 ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Nunito","Helvetica Neue",sans-serif;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+a{color:var(--encre)}
+header{padding:20px 18px 6px}
+h1{font-size:30px;line-height:1.15;margin:0;font-weight:700;letter-spacing:-.01em}
+h2{font-size:15px;margin:26px 18px 8px;color:var(--doux);font-weight:600}
+main{padding:0 12px}
+.c{background:var(--carte);border-radius:18px;padding:16px;margin:10px 0}
+.t{font-weight:650;font-size:18px} .s{color:var(--doux);font-size:15px;margin-top:2px}
+.retard{color:var(--impaye);font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+button,select,input,textarea{font:inherit;color:inherit}
+button{border:0;border-radius:12px;padding:11px 16px;background:var(--encre);color:#fff;font-weight:600;cursor:pointer}
+button.leger{background:transparent;color:var(--encre);border:1.5px solid var(--trait)}
+button.lien{background:none;color:var(--doux);padding:6px 0;font-weight:500;font-size:15px}
+button.gros{width:100%;padding:18px;font-size:19px;border-radius:16px}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--soleil);outline-offset:2px}
+select,input,textarea{background:var(--carte);border:1.5px solid var(--trait);border-radius:12px;padding:11px;width:100%}
+textarea{min-height:70px;resize:vertical}
+label{display:block;margin:12px 0 4px;font-size:15px;color:var(--doux)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--carte);border-top:1px solid var(--trait);
+  padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav button{flex:1;background:none;color:var(--doux);border-radius:0;padding:10px 2px 12px;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button span{font-size:22px;filter:grayscale(1);opacity:.6}
+nav button.on{color:var(--encre)} nav button.on span{filter:none;opacity:1}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--texte);color:var(--fond);
+  padding:14px 16px;border-radius:16px;display:none;z-index:9;font-weight:600}
+.vide{color:var(--doux);padding:16px 6px}
+details.c>summary,details.grp>summary{list-style:none;cursor:pointer;color:inherit;font-weight:inherit;padding:0}
+details.c>summary::-webkit-details-marker,details.grp>summary::-webkit-details-marker{display:none}
+.fl{float:right;color:var(--doux);transition:transform .2s} details[open]>summary .fl{transform:rotate(90deg)}
+.alerte{background:var(--impaye);color:#fff;border-radius:18px;padding:16px;margin:10px 0;font-weight:650}
+.alerte .s{color:#FFE9E9;font-weight:500} .alerte button{background:#fff;color:var(--impaye)}
+.attente{display:inline-block;font-size:14px;font-weight:700;color:var(--partiel);background:color-mix(in srgb,var(--partiel) 16%,transparent);padding:4px 10px;border-radius:20px}
+.compte{cursor:pointer} .gros-chiffre{font-size:26px;font-weight:700}
+.seg{display:flex;background:var(--carte);border-radius:14px;padding:4px;margin:6px 0 10px}
+.seg button{flex:1;background:none;color:var(--doux);padding:9px;border-radius:10px}
+.seg button.on{background:var(--encre);color:#fff}
+.cherche{position:sticky;top:env(safe-area-inset-top,0px);z-index:3;background:var(--fond);padding:6px 0 8px}
+.puces{display:flex;gap:6px;overflow-x:auto;margin-top:8px}
+.puces button{flex:none;padding:6px 12px;font-size:14px}
+details.loc{background:var(--carte);border-radius:14px;margin:6px 0}
+details.loc>summary{list-style:none;cursor:pointer;color:inherit;font-weight:inherit;padding:12px 14px;display:flex;gap:10px;align-items:center}
+details.loc>summary::-webkit-details-marker{display:none}
+.loc .nm{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loc .bi{color:var(--doux);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dpe{flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+.fiche{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;padding:0 14px 14px;font-size:15px}
+.loc .notes{margin:0 14px;padding-bottom:10px}
+.frise{display:flex;gap:3px;padding:0 14px 12px}
+.frise span{flex:1;text-align:center;font-size:11px;color:var(--doux)}
+.frise i{display:block;height:18px;border-radius:5px;margin-bottom:3px}
+.frise .vert i{background:var(--paye)} .frise .orange i{background:var(--partiel)} .frise .rouge i{background:var(--impaye)} .frise .gris i{background:var(--avenir)}
+.avert{margin:0 14px 12px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--impaye) 14%,transparent);font-size:15px}
+.ech{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--trait)}
+.ech:first-of-type{border-top:0} .ech .i{font-size:22px;flex:none}
+.ech .j{flex:none;font-size:13px;font-weight:700;color:var(--doux);text-align:right;min-width:52px}
+.fiche dt{color:var(--doux)}
+:root[data-ambiance="nuit"] .note{background:#273344}
+:root[data-ambiance="nuit"] .attente{color:#F5B54A}
+@media (prefers-color-scheme: dark){ :root[data-ambiance="aube"] .note{background:#273344} :root[data-ambiance="aube"] .attente{color:#F5B54A} }
+.titre-mois{font:inherit;font-size:30px;font-weight:700;letter-spacing:-.01em;border:0;background:transparent;padding:0 28px 0 0;width:auto;color:var(--texte);
+  appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--doux) 50%),linear-gradient(135deg,var(--doux) 50%,transparent 50%);
+  background-position:calc(100% - 12px) 55%,calc(100% - 6px) 55%;background-size:6px 6px;background-repeat:no-repeat} .fiche dd{margin:0;font-weight:600}
+.titre-sci{margin:16px 6px 4px;font-weight:700;color:var(--doux);font-size:15px}
+.photo{position:relative;overflow:hidden} .photo input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+/* accueil */
+.bonjour{display:flex;align-items:center;gap:14px}
+.av{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:18px}
+.av.p{width:28px;height:28px;font-size:13px}
+.soleil{background:var(--soleil);color:#3A2A00;border-radius:22px;padding:18px;margin:14px 0 4px;font-weight:650;font-size:18px}
+.soleil .s{color:#5A4510;font-weight:500}
+.soleil.ok{background:var(--paye);color:#fff} .soleil.ok .s{color:#E2F6EA}
+.soleil.retard{background:var(--impaye);color:#fff} .soleil.retard .s{color:#FFE9E9}
+.fil{display:flex;gap:10px;align-items:center;padding:8px 2px}
+.changer{margin-top:10px;display:flex;gap:8px;align-items:center;color:var(--doux);font-size:15px}
+.changer select{width:auto;padding:6px 10px}
+/* statuts de paiement : couleur + mot + symbole */
+.st{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14px;padding:4px 10px;border-radius:20px;color:#fff}
+.st.vert{background:var(--paye)} .st.orange{background:var(--partiel)} .st.rouge{background:var(--impaye)} .st.gris{background:var(--avenir)}
+.c.vert{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--paye) 35%,transparent)}
+.c.orange{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--partiel) 45%,transparent)}
+.c.rouge{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--impaye) 45%,transparent)}
+.legende{display:flex;gap:6px;flex-wrap:wrap;margin:10px 4px}
+.groupe{display:flex;justify-content:space-between;align-items:baseline;margin:26px 6px 4px}
+.groupe b{font-size:19px} .groupe span{color:var(--doux);font-size:14px}
+.montant{font-size:15px;margin-top:8px}
+.envoye{font-size:14px;color:var(--paye);font-weight:600}
+/* dossiers et étapes */
+.etapes{margin:12px 0 0;padding:0;list-style:none}
+.etapes li{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--trait)}
+.etapes li .rond{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--trait);display:grid;place-items:center;font-size:13px;margin-top:2px}
+.etapes li.fait{color:var(--doux)} .etapes li.fait .rond{background:var(--paye);border-color:var(--paye);color:#fff}
+.etapes li.fait .nom{text-decoration:line-through}
+.etapes li.avenir{opacity:.55}
+.etapes li.actuelle .rond{border-color:var(--soleil);background:color-mix(in srgb,var(--soleil) 30%,transparent)}
+.barre{height:6px;border-radius:6px;background:var(--trait);margin-top:10px;overflow:hidden}
+.barre i{display:block;height:100%;background:var(--paye);border-radius:6px}
+.notes{margin-top:10px;border-top:1px dashed var(--trait);padding-top:8px}
+.note{background:var(--fond);border-radius:12px;padding:10px 12px;margin:6px 0;font-size:15px}
+.note .s{font-size:13px}
+details summary{cursor:pointer;color:var(--encre);font-weight:600;list-style:none;padding:6px 0}
+details summary::-webkit-details-marker{display:none}
+@media (prefers-reduced-motion: no-preference){ .fini{animation:fini .5s ease forwards} @keyframes fini{to{opacity:0;transform:scale(.97)}} }
+</style>
+</head>
+<body>
+<header id="haut"></header>
+<main id="vue"><p class="vide">Chargement…</p></main>
+<nav id="nav" hidden></nav>
+<div id="toast" role="status"></div>
+
+<script>
+const TOKEN = <?!= JSON.stringify(token) ?>;
+const MOIS_C = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+// Droits réglables par Steve : qui a quel menu ou quelle action
+const DROITS = [
+  ['mois', 'Voir « Le mois »', 'Paiements et envois du mois'],
+  ['dossiers', 'Voir « Dossiers » et les fiches locataires', 'Dossiers en cours, loyers, DPE, contacts'],
+  ['envoi', 'Marquer les envois aux locataires', 'Quittances, reçus et relances'],
+  ['controle', 'Être prévenu si les envois sont en retard', 'Bandeau rouge et rappel WhatsApp à partir du 8'],
+  ['photos', 'Envoyer des photos depuis une tâche', 'L’appareil photo s’ouvre directement'],
+  ['conseils', 'Lire les conseils de Claude', 'Analyse et propositions à chaque cycle'],
+  ['simple', 'Écran simplifié', 'Gros boutons, seulement ses tâches']
+];
+const THEMES = [['aube','Aube','linear-gradient(135deg,#FFE3B8,#E6F0EC)'],['lavande','Lavande','linear-gradient(135deg,#E7DCFA,#EFECF7)'],
+  ['ocean','Océan','linear-gradient(135deg,#C9E8F5,#E6F1F4)'],['jardin','Jardin','linear-gradient(135deg,#DDEFC9,#EEF4E6)'],['nuit','Nuit','linear-gradient(135deg,#22304A,#121821)']];
+function theme(t){ document.documentElement.dataset.ambiance = t; try { localStorage.setItem('ambiance', t); } catch(e) {} }
+try { theme(localStorage.getItem('ambiance') || 'aube'); } catch(e) {}
+let S = { as: null, onglet: 'mes', voirTermines: false, ouverts: {}, ouv: {}, photos: {} };
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const js = s => esc(JSON.stringify(String(s)));
+const eur = n => (+n || 0).toLocaleString('fr-FR', {style:'currency', currency:'EUR'});
+const date = s => s ? s.split('-').reverse().join('/') : 'sans date';
+const ymdLocal = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const auj = () => ymdLocal(new Date());
+const COULEURS = { Steve:'#1F3A5F', Maman:'#C2577A', Papa:'#3E8E7E', Laetitia:'#E07A3F', Vinciane:'#7A5CC2', Camille:'#2E86C1', Claude:'#8C9AAB' };
+const av = (p, petit) => `<span class="av ${petit?'p':''}" style="background:${COULEURS[p]||'#8C9AAB'}" aria-hidden="true">${esc((p||'?').charAt(0))}</span>`;
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',3200); }
+const run = (f, ...a) => new Promise((ok, ko) => google.script.run
+  .withSuccessHandler(r => ok(r == null ? null : JSON.parse(r)))
+  .withFailureHandler(e => { const m = String((e && e.message) || e).replace(/^(Error|Exception|Erreur)\s*:\s*/i, ''); toast(m); ko(e); })
+  .api(f, JSON.stringify(a)));
+const profil = () => S.as || S.moi;
+const peut = (cle, p) => ((S.droits || {})[cle] || []).includes(p || profil());
+
+// Liens des remarques (ex. Leboncoin, LocService) en boutons
+const SITES = { 'leboncoin.fr':'Leboncoin', 'locservice.fr':'LocService' };
+function remarque(r){
+  if (!r) return '';
+  const liens = [];
+  const texte = String(r).replace(/https?:\/\/\S+/g, u => { liens.push(u); return ''; }).trim();
+  return (texte ? `<div class="s">${esc(texte)}</div>` : '')
+    + (liens.length ? `<div class="row">${liens.map(u => { const h = u.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+        return `<a href="${esc(u)}" target="_blank" rel="noopener"><button class="leger" tabindex="-1">Ouvrir ${esc(SITES[h] || h)}</button></a>`; }).join('')}</div>` : '');
+}
+
+// ---------- Accès ----------
+async function demarrer(){
+  const r = await run('init', TOKEN);
+  if (r.state === 'nouveau') return ecranDemande();
+  if (r.state !== 'ok') {
+    $('haut').innerHTML = `<h1>Gestion SCI</h1>`;
+    $('vue').innerHTML = `<div class="c"><p class="t">${r.state === 'En attente' ? 'Demande envoyée' : 'Pas d’accès'}</p>
+      <p>${r.state === 'En attente'
+        ? 'Ajoute maintenant cette page à l’écran d’accueil : bouton Partager, puis « Sur l’écran d’accueil ». Steve va valider ta demande, ensuite rouvre l’app depuis l’icône.'
+        : 'Ce téléphone n’a pas accès. Demande à Steve.'}</p></div>`;
+    return;
+  }
+  S.moi = r.prenom; S.isSteve = r.isSteve; S.profils = r.profils; S.droits = r.droits;
+  menu(); afficher();
+}
+function ecranDemande(){
+  $('haut').innerHTML = `<h1>Bienvenue</h1>`;
+  $('vue').innerHTML = `<div class="c"><p class="t">Premier lancement</p>
+    <label for="nom">Ton prénom, exactement comme dans la liste</label>
+    <input id="nom" autocomplete="off" placeholder="ex. : Laetitia">
+    <div class="row"><button onclick="demander()">Demander l’accès</button></div></div>`;
+}
+async function demander(){
+  const url = await run('demanderAcces', $('nom').value);
+  $('vue').innerHTML = `<div class="c"><p class="t">Demande envoyée</p>
+    <p>Appuie sur « Continuer » : tu arrives sur ta page personnelle. Ajoute-la à l’écran d’accueil (Partager, puis « Sur l’écran d’accueil »).</p>
+    <div class="row"><a href="${esc(url)}" target="_top"><button tabindex="-1">Continuer</button></a></div></div>`;
+}
+
+// ---------- Navigation ----------
+function menu(){
+  const tabs = [['mes','🏠','Accueil']].concat(peut('mois') ? [['mois','💶','Le mois']] : [], peut('dossiers') ? [['taches','🗂️','Dossiers']] : [])
+    .concat(S.isSteve && !S.as ? [['steve','🧭','Pilotage']] : []);
+  if (!tabs.find(t => t[0] === S.onglet) && S.onglet !== 'conseils') S.onglet = 'mes';
+  if (S.onglet === 'conseils' && !peut('conseils')) S.onglet = 'mes';
+  $('nav').hidden = !tabs.length;
+  $('nav').innerHTML = tabs.map(t => `<button class="${t[0]===S.onglet?'on':''}" onclick="S.onglet='${t[0]}';menu();afficher(1)"><span>${t[1]}</span>${t[2]}</button>`).join('');
+}
+function afficher(haut){ if (haut) window.scrollTo(0,0); ({mes:vueMes, mois:vueMois, taches:vueDossiers, steve:vueSteve, conseils:vueConseils})[S.onglet](); }
+
+// ---------- Étapes : la suivante apparaît quand la précédente est faite ----------
+const num = t => { const m = /^(\d+)\.\s/.exec(t.tache); return m ? +m[1] : null; };
+const nom = t => t.tache.replace(/^\d+\.\s*/, '');
+function etat(t, D){
+  if (t.statut === 'Fait') return 'fait';
+  const n = num(t); if (n == null) return 'actuelle';
+  const min = Math.min(...D.taches.filter(x => x.dossier === t.dossier && x.statut !== 'Fait' && num(x) != null).map(num));
+  return n === min ? 'actuelle' : 'avenir';
+}
+const tri = l => l.sort((a,b) => (a.ech || '9') < (b.ech || '9') ? -1 : 1);
+
+function actions(t, D){
+  const p = D.profil;
+  if (!t.resp) return peut('simple', p) ? '' : `<button onclick="maj('${t.id}','Responsable',${js(p)})">Je m’en occupe</button>`;
+  if (t.resp !== p && t.resp !== 'Tous' && !D.isSteve) return '';
+  if (t.statut === 'Fait') return `<button class="lien" onclick="maj('${t.id}','Statut','À faire')">Rouvrir</button>`;
+  if (/photo/i.test(t.tache) && peut('photos', p)) {
+    const n = S.photos[t.id] || 0;
+    return `<label class="photo" style="flex:1"><button class="gros" tabindex="-1">📷 ${n ? 'Une autre photo' : 'Prendre la photo'}</button>
+      <input type="file" accept="image/*" capture="environment" onchange="envoiPhoto(this,'${t.id}')" aria-label="Prendre la photo"></label>`
+      + (n ? `<button class="${peut('simple', p) ? 'gros' : ''}" onclick="fait(this,'${t.id}')">C’est tout, ${n} photo${n > 1 ? 's' : ''} envoyée${n > 1 ? 's' : ''}</button>` : '');
+  }
+  if (/contrôle des envois/i.test(t.tache)) return `<button class="leger" onclick="S.onglet='mois';menu();afficher(1)">Voir les envois</button><button onclick="fait(this,'${t.id}')">C’est fait</button>`;
+  if (peut('simple', p)) return `<button class="gros" onclick="fait(this,'${t.id}')">C’est fait</button>`;
+  return (t.statut === 'À faire' ? `<button class="leger" onclick="maj('${t.id}','Statut','En cours')">Je commence</button>` : '')
+    + `<button onclick="fait(this,'${t.id}')">C’est fait</button>`;
+}
+function reglage(t, D){
+  if (!D.isSteve || t.statut === 'Fait') return '';
+  return `<details><summary>Modifier</summary><div class="row">
+    <select style="width:auto" onchange="maj('${t.id}','Responsable',this.value)"><option value="">Sans responsable</option>${D.profils.concat('Claude', 'Tous').map(x=>`<option ${x===t.resp?'selected':''}>${esc(x)}</option>`).join('')}</select>
+    <input type="date" style="width:auto" value="${esc(t.ech)}" onchange="maj('${t.id}','Échéance',this.value)"></div></details>`;
+}
+function carte(t, D){
+  const retard = t.ech && t.ech < auj();
+  return `<div class="c" id="c-${t.id}"><div class="t">${esc(nom(t))}</div>
+    <div class="s">${esc(t.dossier)}${t.loc ? ', ' + esc(t.loc) : ''}</div>
+    <div class="s"><span class="${retard?'retard':''}">${retard ? 'En retard, prévu le ' : 'Pour le '}${date(t.ech)}</span>${t.statut==='En cours'?', commencé':''}</div>
+    ${remarque(t.rem)}<div class="row">${actions(t, D)}</div>${reglage(t, D)}</div>`;
+}
+
+// ---------- Accueil ----------
+async function vueMes(){
+  const [D, M] = await Promise.all([run('taches', TOKEN, S.as), peut('mois') ? run('leMois', TOKEN, S.as) : Promise.resolve({ locs: [], mois: '', courant: false })]); S.D = D;
+  const C = peut('conseils') ? await run('conseils', TOKEN) : null;
+  const X = situation(M);
+  const p = D.profil, h = new Date().getHours();
+  const actuelles = D.taches.filter(t => etat(t, D) === 'actuelle');
+  const miennes = tri(actuelles.filter(t => t.resp === p || t.resp === 'Tous')), commun = tri(actuelles.filter(t => !t.resp));
+  const retard = miennes.filter(t => t.ech && t.ech < auj()).length;
+  const actuel = document.documentElement.dataset.ambiance || 'aube';
+  $('haut').innerHTML = `<div class="bonjour">${av(p)}<h1>${h < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(p)}</h1></div>
+    <div class="outils">${S.isSteve ? `<label class="changer" style="margin:0">Voir l’app comme <select onchange="S.as=this.value===S.moi?null:this.value;menu();afficher(1)">${S.profils.map(x=>`<option ${x===p?'selected':''}>${esc(x)}</option>`).join('')}</select></label>` : ''}
+      <button class="lien" onclick="S.choixTheme=!S.choixTheme;afficher()">🎨 Thème</button></div>
+    ${S.choixTheme ? `<div class="themes">${THEMES.map(t => `<button class="${t[0]===actuel?'on':''}" style="background:${t[2]}" aria-label="${t[1]}" title="${t[1]}" onclick="theme('${t[0]}');afficher()"></button>`).join('')}</div>` : ''}`;
+  const soleil = miennes.length
+    ? `<div class="soleil ${retard ? 'retard' : ''}">${miennes.length === 1 ? 'Une chose pour toi' : miennes.length + ' choses pour toi'}${retard ? `<div class="s">dont ${retard} en retard</div>` : '<div class="s">Merci pour ton aide.</div>'}</div>`
+    : `<div class="soleil ok">Rien à faire pour toi ☀️<div class="s">Tout est à jour. Profite !</div></div>`;
+  const compte = `<div class="c compte" onclick="S.onglet='mois';menu();afficher(1)" role="button" tabindex="0">
+      <div class="s">💶 ${esc(M.mois.charAt(0).toUpperCase() + M.mois.slice(1))}</div>
+      <div class="t">${X.payes} payé${X.payes > 1 ? 's' : ''} sur ${M.locs.length}${X.impayes ? `, <span style="color:var(--impaye)">${X.impayes} impayé${X.impayes > 1 ? 's' : ''}</span>` : ''}${X.partiels ? `, ${X.partiels} partiel${X.partiels > 1 ? 's' : ''}` : ''}</div>
+      <div class="barre"><i style="width:${X.du ? Math.round(100 * X.recu / X.du) : 0}%"></i></div></div>`;
+  const conseil = C && C[0] && C[0].items.length ? `<div class="c compte" onclick="S.onglet='conseils';menu();afficher(1)" role="button" tabindex="0">
+      <div class="s">💡 Conseils de Claude, ${esc(C[0].mois.toLowerCase())}</div><div class="t">${C[0].items.length} point${C[0].items.length > 1 ? 's' : ''} à regarder</div>
+      <div class="s">${esc(C[0].items[0][0])} : ${esc(C[0].items[0][1].slice(0, 70))}…</div></div>` : '';
+  $('vue').innerHTML = alerteEnvois(M, X) + soleil + (peut('mois') ? compte : '') + conseil + miennes.map(t => carte(t, D)).join('')
+    + (!peut('simple', p) && commun.length ? `<h2>Quelqu’un pour s’en occuper ?</h2>` + commun.map(t => carte(t, D)).join('') : '')
+    + (D.famille.length ? `<h2>Du côté de la famille</h2><div class="c">${D.famille.map(f => `<div class="fil">${av(f.txt.split(' ')[0], 1)}<div>${esc(f.txt)}<div class="s">${esc(f.le)}</div></div></div>`).join('')}</div>` : '');
+}
+
+// ---------- Dossiers (une tâche avec ses étapes) ----------
+function blocNotes(sujet, notes){
+  const l = notes[sujet] || [], o = S.ouverts[sujet];
+  return `<div class="notes"><button class="lien" onclick="S.ouverts[${js(sujet)}]=!S.ouverts[${js(sujet)}];afficher()">💬 ${l.length ? l.length + (l.length > 1 ? ' notes' : ' note') : 'Ajouter une note'}</button>
+    ${o ? l.map(n => `<div class="note">${esc(n.texte)}<div class="s">${esc(n.qui)}, le ${date(n.le)}</div></div>`).join('')
+      + `<textarea placeholder="Ex. : pas de relance ce mois-ci, elle a appelé pour prévenir" id="n-${esc(encodeURIComponent(sujet))}"></textarea>
+         <div class="row"><button onclick="note(${js(sujet)})">Ajouter la note</button></div>` : ''}</div>`;
+}
+async function note(sujet){
+  const v = document.getElementById('n-' + encodeURIComponent(sujet)).value;
+  await run('addNote', TOKEN, S.as, sujet, v); toast('Note ajoutée, merci !'); afficher();
+}
+const DPE = { A:'#009A44', B:'#53AF31', C:'#9DBE00', D:'#E5B800', E:'#F0A000', F:'#EB6209', G:'#E2001A' };
+const seg = () => `<div class="seg" role="tablist">${[['dos','Dossiers'],['loc','Locataires'],['ech','Échéances']].map(([k, t]) => `<button class="${(S.sous||'dos')===k?'on':''}" onclick="S.sous='${k}';afficher(1)">${t}</button>`).join('')}</div>`;
+async function vueEcheances(){
+  const E = await run('echeances', TOKEN, S.as);
+  $('haut').innerHTML = `<h1>Échéances</h1>`;
+  const bloc = l => l.map(e => `<div class="ech"><span class="i" aria-hidden="true">${e.i}</span><div style="flex:1;min-width:0"><div style="font-weight:600">${esc(e.t)}</div><div class="s">${esc(e.s)}</div></div>
+      <div class="j">${e.j === 0 ? 'Aujourd’hui' : e.j < 31 ? 'dans ' + e.j + ' j' : date(e.d).slice(0, 5)}</div></div>`).join('');
+  const bientot = E.filter(e => e.j <= 60), plusTard = E.filter(e => e.j > 60);
+  $('vue').innerHTML = seg()
+    + `<h2>Dans les 60 prochains jours</h2><div class="c">${bloc(bientot) || '<p class="vide">Rien de prévu.</p>'}</div>`
+    + (plusTard.length ? `<details class="c" ${S.ouv.tard ? 'open' : ''} ontoggle="S.ouv.tard=this.open"><summary><span class="fl">›</span><div class="t">Plus tard dans l’année</div><div class="s">${plusTard.length} échéances</div></summary>${bloc(plusTard)}</details>` : '');
+}
+async function vueLocataires(){
+  const L = await run('locataires', TOKEN, S.as);
+  $('haut').innerHTML = `<h1>Locataires</h1>`;
+  const filtre = S.sci || '';
+  const tiret = v => v === '' || v == null ? '<span class="s">à renseigner</span>' : esc(v);
+  const champ = (l, k, lib, v, type) => `<label>${lib}<input ${type === 'date' ? 'type="date"' : 'inputmode="' + (type === 'nombre' ? 'decimal' : 'text') + '"'} value="${esc(v == null ? '' : v)}" onchange="fiche(${js(l.id)},'${k}',this.value)"></label>`;
+  const edition = l => !L.modifiable ? '' : `<details style="margin:0 14px 12px"><summary>✏️ Modifier la fiche</summary>
+      ${champ(l, 'tel', 'Téléphone', l.tel)}${champ(l, 'mail', 'Mail', l.mail)}${champ(l, 'entree', 'Date d’entrée', l.bail, 'date')}
+      ${champ(l, 'depot', 'Dépôt de garantie (€)', l.depot, 'nombre')}${champ(l, 'dpe', 'DPE (lettre A à G)', l.dpe)}${champ(l, 'gestion', 'Gestion', l.gestion)}
+      ${champ(l, 'surface', 'Surface (m²)', l.surface, 'nombre')}${l.dette31 === null ? '' : champ(l, 'dette31', 'Dette au 31/10/2026 (€)', l.dette31, 'nombre')}
+      <p class="s">Enregistré dès que tu quittes la case. Chaque modification est notée et peut être annulée dans Pilotage.</p></details>`;
+  const ligne = l => `<details class="loc" data-q="${esc((l.nom + ' ' + l.bien + ' ' + l.sciNom + ' ' + l.dpe).toLowerCase())}" data-sci="${esc(l.sci)}">
+    <summary><span class="dpe" style="background:${DPE[l.dpe] || '#8C9AAB'}" title="DPE ${esc(l.dpe)}">${esc(l.dpe || '?')}</span>
+      <div style="flex:1;min-width:0"><div class="nm">${esc(l.nom)}</div><div class="bi">${esc(l.bien)}</div></div>
+      <b style="flex:none">${l.statut === 'recouvrement' ? '' : eur(l.loyer + l.charges)}</b></summary>
+    <div class="s" style="padding:0 14px 6px">Paiements des 12 derniers mois</div>
+    <div class="frise" aria-label="Historique des paiements">${l.histo.map((c, i) => `<span class="${c}"><i></i>${MOIS_C[(new Date().getMonth() + 1 + i) % 12]}</span>`).join('')}</div>
+    ${l.dpe === 'G' ? `<div class="avert">⚠️ DPE G : plus de nouveau bail possible. Prévoir les travaux avant le départ du locataire (à vérifier).</div>`
+      : l.dpe === 'F' ? `<div class="avert">⚠️ DPE F : plus de nouveau bail possible à partir de 2028 (à vérifier). Anticiper les travaux.</div>` : ''}
+    <dl class="fiche">${l.statut === 'recouvrement' ? `<dt>Situation</dt><dd>Recouvrement en cours</dd>` : ''}
+      ${l.dette > 0.005 ? `<dt>Reste dû</dt><dd style="color:var(--impaye)">${eur(l.dette)}</dd>` : ''}
+      <dt>Loyer hors charges</dt><dd>${eur(l.loyer)}</dd>
+      <dt>Charges</dt><dd>${eur(l.charges)}</dd>
+      <dt>Total par mois</dt><dd>${eur(l.loyer + l.charges)}</dd>
+      <dt>DPE</dt><dd>${tiret(l.dpe)}${/[FG]/.test(l.dpe) ? ' : loyer gelé, pas de révision' : ''}</dd>
+      <dt>Surface</dt><dd>${l.surface === '' ? tiret('') : esc(l.surface) + ' m²'}</dd>
+      <dt>Début du bail</dt><dd>${l.bail ? date(l.bail) : tiret('')}</dd>
+      <dt>Prochaine révision</dt><dd>${/[FG]/.test(l.dpe) ? 'aucune' : l.revision ? date(l.revision) : tiret('')}</dd>
+      <dt>Dépôt de garantie</dt><dd>${l.depot == null ? tiret('') : eur(l.depot)}</dd>
+      <dt>Gestion</dt><dd>${tiret(l.gestion)}</dd>
+      <dt>Téléphone</dt><dd>${l.tel ? `<a href="tel:${esc(l.tel.replace(/\s/g,''))}">${esc(l.tel)}</a>` : tiret('')}</dd>
+      <dt>Mail</dt><dd style="word-break:break-all">${l.mail ? `<a href="mailto:${esc(l.mail)}">${esc(l.mail)}</a>` : tiret('')}</dd>
+    </dl>${edition(l)}${blocNotes(l.id, L.notes)}</details>`;
+  $('vue').innerHTML = seg()
+    + `<div class="cherche"><input type="search" id="q" placeholder="Chercher un nom, une adresse, un DPE…" oninput="filtrer()" autocomplete="off">
+       <div class="puces">${[['','Tous'],['CLS','SCI CLSV'],['CGF','SCI CGF'],['PERSO','Hors SCI']].map(c => `<button class="${filtre===c[0]?'':'leger'}" onclick="S.sci='${c[0]}';filtrer(1)">${c[1]}</button>`).join('')}</div></div>`
+    + [['CLS','SCI CLSV'],['CGF','SCI CGF'],['PERSO','Hors SCI, 1 place Alphonse Daudet']].map(([c, t]) => {
+        const l = L.locs.filter(x => x.sci === c && x.statut === 'actif'); if (!l.length) return '';
+        return `<div class="grpl" data-sci="${c}"><div class="titre-sci">${t} (${l.length})</div>${l.map(ligne).join('')}</div>`;
+      }).join('')
+    + (L.locs.some(x => x.statut === 'recouvrement') ? `<div class="grpl" data-sci="*"><div class="titre-sci">Recouvrements (anciens baux)</div>${L.locs.filter(x => x.statut === 'recouvrement').map(ligne).join('')}</div>` : '')
+    + `<p class="vide" id="rien" hidden>Aucun locataire ne correspond.</p>`;
+  filtrer();
+}
+// Filtre sur place : le clavier reste ouvert, rien ne recharge
+function filtrer(puce){
+  if (puce) document.querySelectorAll('.puces button').forEach((b, i) => b.className = ['','CLS','CGF','PERSO'][i] === (S.sci||'') ? '' : 'leger');
+  const q = ($('q') ? $('q').value : '').trim().toLowerCase(), sci = S.sci || '';
+  let n = 0;
+  document.querySelectorAll('.grpl').forEach(g => {
+    let vus = 0;
+    g.querySelectorAll('details.loc').forEach(d => { const ok = (!sci || d.dataset.sci === sci || g.dataset.sci === '*') && (!q || d.dataset.q.includes(q)); d.hidden = !ok; if (ok) vus++; });
+    g.hidden = !vus; n += vus;
+  });
+  $('rien').hidden = n > 0;
+}
+async function vueDossiers(){
+  if (S.sous === 'loc') return vueLocataires();
+  if (S.sous === 'ech') return vueEcheances();
+  const D = await run('taches', TOKEN, S.as); S.D = D;
+  $('haut').innerHTML = `<h1>Dossiers</h1>`;
+  const dossiers = {};
+  D.taches.forEach(t => (dossiers[t.dossier] = dossiers[t.dossier] || []).push(t));
+  const liste = Object.entries(dossiers).map(([d, l]) => ({ d, l: l.sort((a,b) => (num(a)||0) - (num(b)||0)),
+    faites: l.filter(t => t.statut === 'Fait').length })).filter(x => S.voirTermines ? x.faites === x.l.length : x.faites < x.l.length);
+  $('vue').innerHTML = seg() + `<div class="row" style="margin:6px 4px"><button class="leger" onclick="S.voirTermines=!S.voirTermines;afficher()">${S.voirTermines ? 'Voir les dossiers en cours' : 'Voir les dossiers terminés'}</button>
+      <button onclick="$('nouveau').open=true;$('nouveau').scrollIntoView()">Nouveau</button></div>`
+    + (liste.map(x => {
+        const loc = x.l.find(t => t.loc);
+        const enCours = x.l.filter(t => etat(t, D) === 'actuelle');
+        return `<details class="c" ${S.ouv[x.d] ? 'open' : ''} ontoggle="S.ouv[${js(x.d)}]=this.open"><summary>
+          <span class="fl">›</span><div class="t">${esc(x.d)}</div>${loc ? `<div class="s">${esc(loc.loc)}</div>` : ''}
+          <div class="barre"><i style="width:${Math.round(100 * x.faites / x.l.length)}%"></i></div>
+          <div class="s">${x.faites} sur ${x.l.length} ${x.l.length > 1 ? 'étapes faites' : 'étape faite'}${enCours.length ? '. Maintenant : ' + enCours.map(t => esc(nom(t)) + ' (' + esc(t.resp || 'personne') + ')').join(', ') : ''}</div></summary>
+          <ul class="etapes">${x.l.map(t => { const e = etat(t, D); return `<li class="${e}"><span class="rond">${e === 'fait' ? '✓' : ''}</span>
+            <div style="flex:1"><div class="nom">${esc(nom(t))}</div>
+            <div class="s">${t.resp ? esc(t.resp) : 'Sans responsable'}${e !== 'fait' && t.ech ? ', pour le ' + date(t.ech) : ''}</div>
+            ${e === 'actuelle' ? remarque(t.rem) + `<div class="row">${actions(t, D)}</div>` : ''}${e !== 'fait' ? reglage(t, D) : ''}</div></li>`; }).join('')}</ul>
+          ${blocNotes(x.d, D.notes)}</details>`; }).join('') || `<p class="vide">${S.voirTermines ? 'Aucun dossier terminé.' : 'Aucun dossier en cours. Crée le premier ci-dessous.'}</p>`)
+    + `<details id="nouveau" class="c"><summary>＋ Nouveau dossier ou tâche</summary>
+      <label for="n_mod">À partir d’un modèle</label><select id="n_mod" onchange="$('libre').hidden=!!this.value"><option value="">Non, une tâche simple</option>${Object.keys(D.modeles).map(m=>`<option>${esc(m)}</option>`).join('')}</select>
+      <label for="n_dos">Nom du dossier</label><input id="n_dos" placeholder="ex. : Relocation rue des Lilas">
+      <label for="n_loc">Locataire (facultatif)</label><select id="n_loc"><option value=""></option>${D.locataires.map(x=>`<option>${esc(x)}</option>`).join('')}</select>
+      <div id="libre"><label for="n_tac">Tâche</label><input id="n_tac">
+        <label for="n_resp">Qui s’en occupe</label><select id="n_resp"><option value="">Personne pour l’instant</option>${D.profils.concat('Claude', 'Tous').map(x=>`<option>${esc(x)}</option>`).join('')}</select></div>
+      <label for="n_ech">Pour quand</label><input id="n_ech" type="date">
+      <div class="row"><button onclick="creer()">Créer</button></div></details>`;
+}
+async function creer(){
+  const n = await run('creer', TOKEN, S.as, { modele: $('n_mod').value, dossier: $('n_dos').value.trim(), loc: $('n_loc').value,
+    tache: $('n_tac').value.trim(), resp: $('n_resp').value, ech: $('n_ech').value });
+  toast(n > 1 ? 'Dossier créé avec ' + n + ' étapes' : 'Tâche créée'); afficher();
+}
+// Photo réduite sur le téléphone puis envoyée dans le Drive
+async function envoiPhoto(input, id){
+  const f = input.files[0]; if (!f) return;
+  toast('Envoi de la photo…');
+  const img = await createImageBitmap(f), k = Math.min(1, 2000 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k;
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  await run('photo', TOKEN, S.as, id, c.toDataURL('image/jpeg', .85).split(',')[1], 'image/jpeg');
+  S.photos[id] = (S.photos[id] || 0) + 1; toast('Photo envoyée, merci !'); afficher();
+}
+async function fiche(id, k, v){ await run('setFiche', TOKEN, id, k, v); toast('Enregistré'); }
+async function maj(id, champ, val){ await run('setTache', TOKEN, S.as, id, champ, val); afficher(); }
+async function fait(btn, id){
+  const c = btn.closest('.c'); if (c && S.onglet === 'mes') c.classList.add('fini');
+  await run('setTache', TOKEN, S.as, id, 'Statut', 'Fait');
+  toast(['Bravo, c’est fait !','Merci ' + profil() + ' !','Une de moins 👏'][Math.floor(Math.random()*3)]);
+  setTimeout(afficher, 350);
+}
+
+// ---------- Situation du mois ----------
+function situation(M){
+  const n = c => M.locs.filter(l => l.couleur === c).length, som = k => M.locs.reduce((a, l) => a + (+l[k] || 0), 0);
+  const dette = M.locs.reduce((a, l) => a + (l.dette > 0 ? l.dette : 0), 0);
+  const nonEnv = M.locs.filter(l => !l.envoye).length;
+  return { payes: n('vert'), partiels: n('orange'), impayes: n('rouge'), avenir: n('gris'), du: som('du'), recu: som('recu'), dette, nonEnv,
+    enRetard: M.courant && !M.peutEnvoyer && nonEnv > 0 && new Date().getDate() >= 8 };
+}
+function alerteEnvois(M, X){
+  if (!X.enRetard || !M.controle) return ''; // seulement pour qui contrôle les envois
+  const msg = 'Petit rappel 🙂 Il reste ' + X.nonEnv + ' courrier' + (X.nonEnv > 1 ? 's' : '') + ' du mois à envoyer dans l’app Gestion SCI. Merci ' + M.envoyeur + ' !';
+  return `<div class="alerte">⚠️ ${X.nonEnv} courrier${X.nonEnv > 1 ? 's' : ''} pas encore envoyé${X.nonEnv > 1 ? 's' : ''} par ${esc(M.envoyeur)}
+    <div class="s">Les envois devaient être faits le 7.</div>
+    <div class="row"><a href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener"><button tabindex="-1">Prévenir sur WhatsApp</button></a></div></div>`;
+}
+
+// ---------- Le mois ----------
+const STATUT = { vert:'✓ Payé', orange:'½ Partiel', rouge:'! Impayé', gris:'◷ À venir' };
+const GROUPES = [['CLS','SCI CLSV'],['CGF','SCI CGF'],['PERSO','Hors SCI, 1 place Alphonse Daudet']];
+async function vueMois(){
+  const M = await run('leMois', TOKEN, S.as, S.moisSel || null);
+  const mois = Array.from({length:12}, (_, i) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+    return [ymdLocal(d).slice(0, 7), d.toLocaleDateString('fr-FR', { month:'long', year:'numeric' })]; });
+  $('haut').innerHTML = `<select class="titre-mois" aria-label="Choisir le mois" onchange="S.moisSel=this.value;vueMois()">${mois.map(([k, t]) => `<option value="${k}" ${k === M.mk ? 'selected' : ''}>${esc(t.charAt(0).toUpperCase() + t.slice(1))}</option>`).join('')}</select>
+    <div class="s" style="margin-top:4px">${M.passe ? '📚 Mois passé, d’après l’historique' : '🔄 À jour au relevé bancaire du ' + date(M.releve)}</div>`;
+  const nb = c => M.locs.filter(l => l.couleur === c).length, X = situation(M);
+  const groupes = GROUPES.concat([...new Set(M.locs.map(l => l.sci))].filter(s => !GROUPES.some(g => g[0] === s)).map(s => [s, s]));
+  $('vue').innerHTML = (M.courant || M.passe ? '' : `<div class="c" style="background:var(--soleil);color:#3A2A00">Le tableau est réglé sur un autre mois que le mois en cours. Les couleurs suivent seulement ce mois-là.</div>`)
+    + alerteEnvois(M, X)
+    + `<div class="c"><div class="s">Reçu ce mois</div><div class="gros-chiffre">${eur(X.recu)} <span class="s">sur ${eur(X.du)}</span></div>
+       <div class="barre"><i style="width:${X.du ? Math.round(100 * X.recu / X.du) : 0}%"></i></div>
+       <div class="legende" style="margin:12px 0 0">${['vert','orange','rouge','gris'].filter(c => nb(c)).map(c => `<span class="st ${c}">${STATUT[c]} : ${nb(c)}</span>`).join('')}</div>
+       ${X.dette > 0.005 ? `<div class="s" style="margin-top:10px">Total dû par les locataires, retards compris : <b>${eur(X.dette)}</b></div>` : ''}
+       <div class="s">Envois : ${M.locs.length - X.nonEnv} sur ${M.locs.length}</div></div>`
+    + groupes.map(([code, titre]) => {
+        const ordre = { rouge:0, orange:1, gris:2, vert:3 };
+        const l = M.locs.filter(x => x.sci === code).sort((a, b) => ordre[a.couleur] - ordre[b.couleur]); if (!l.length) return '';
+        const env = l.filter(x => x.envoye).length;
+        const k = 'sci-' + code, c = col => l.filter(x => x.couleur === col).length;
+        return `<details class="grp" ${S.ouv[k] ? 'open' : ''} ontoggle="S.ouv[${js(k)}]=this.open"><summary><div class="c">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b style="font-size:19px;min-width:0">${esc(titre)}</b><span class="fl" style="float:none">›</span></div>
+            <div class="row" style="margin-top:8px">${['vert','orange','rouge','gris'].filter(col => c(col)).map(col => `<span class="st ${col}">${STATUT[col]} : ${c(col)}</span>`).join('')}</div>
+            <div class="s" style="margin-top:6px">${env} sur ${l.length} envoyé${env > 1 ? 's' : ''}</div></div></summary>`
+          + l.map(x => `<div class="c ${x.couleur}">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t">${esc(x.nom)}</div><span class="st ${x.couleur}">${STATUT[x.couleur]}</span></div>
+            <div class="s">${esc(x.bien)}</div>
+            <div class="montant">Reçu <b>${eur(x.recu)}</b> sur ${eur(x.du)}${x.dette > 0.005 ? `<br>Reste dû au total : <b>${eur(x.dette)}</b>` : ''}</div>
+            <div class="s">À faire : ${esc(x.action).toLowerCase()}</div>
+            <div class="row">${x.envoye ? `<span class="envoye">✓ Envoyé par ${esc(String(x.envoye.qui).split(' ')[0])} le ${date(x.envoye.le)}</span>`
+              : M.passe ? '' : M.peutEnvoyer ? `<button onclick="envoye(${js(x.id)},${js(M.mk)})">Marquer comme envoyé</button>` : `<span class="attente">⏳ Pas encore envoyé par ${esc(M.envoyeur)}</span>`}</div>
+            ${blocNotes(x.id, M.notes)}</div>`).join('') + `</details>`;
+      }).join('');
+}
+async function envoye(id, mk){ await run('marquer', TOKEN, S.as, id, mk); toast('C’est noté, merci !'); vueMois(); }
+
+// ---------- Réglages (Steve) ----------
+async function vueConseils(){
+  const C = await run('conseils', TOKEN);
+  $('haut').innerHTML = `<button class="lien" onclick="S.onglet='mes';menu();afficher(1)">‹ Accueil</button><h1>Conseils de Claude</h1>`;
+  $('vue').innerHTML = C.map((c, i) => `<details class="c" ${i === 0 ? 'open' : ''}><summary><span class="fl">›</span><div class="t">${esc(c.mois)}</div>
+      <div class="s">Écrit le ${date(c.le)}, ${c.items.length} point${c.items.length > 1 ? 's' : ''}</div></summary>
+      ${c.items.map(x => `<div class="note"><b>${esc(x[0])}</b><div style="margin-top:4px">${esc(x[1])}</div></div>`).join('')}</details>`).join('')
+    + `<p class="vide">Claude écrit ces conseils à chaque cycle mensuel. Ils sont en lecture seule : pour en discuter, ajoute une note dans le dossier concerné.</p>`;
+}
+let vueSteve = async function(){
+  const A = await run('admin', TOKEN);
+  const G = await run('globale', TOKEN);
+  $('haut').innerHTML = `<h1>Pilotage</h1>`;
+  const retards = Object.entries(G.retard).sort((a, b) => b[1] - a[1]);
+  const globale = `<h2>Vue d’ensemble</h2><div class="c"><div class="s">Encaissé depuis janvier</div>
+      ${G.encaisse.map(([s, v]) => `<div class="fil" style="justify-content:space-between"><span>${esc(s)}</span><b>${eur(v)}</b></div>`).join('')}
+      <div class="fil" style="justify-content:space-between;border-top:1px solid var(--trait);margin-top:4px;padding-top:10px"><span>Total</span><b>${eur(G.encaisse.reduce((a, x) => a + x[1], 0))}</b></div></div>
+    <div class="c"><div class="s">Qui doit encore de l’argent</div>
+      ${G.impayes.map(i => `<div class="fil" style="justify-content:space-between"><span>${esc(i.nom)}</span><b style="color:var(--impaye)">${eur(i.dette)}</b></div>`).join('') || `<p class="vide">${G.courant ? 'Personne. Bravo !' : 'Le tableau n’est pas réglé sur le mois en cours (2. Suivi du mois, case C3).'}</p>`}</div>
+    <div class="c"><div class="s">Tâches en retard</div>
+      ${retards.map(([p, n]) => `<div class="fil" style="justify-content:space-between"><span class="bonjour" style="gap:10px">${av(p === 'Sans responsable' ? '?' : p, 1)}${esc(p)}</span><b>${n}</b></div>`).join('') || '<p class="vide">Aucune tâche en retard.</p>'}
+      ${G.retard['Sans responsable'] ? `<div class="row"><button class="leger" onclick="S.onglet='taches';S.sous='dos';menu();afficher(1)">Attribuer les tâches</button></div>` : ''}</div>`;
+  const att = A.appareils.filter(a => a.statut === 'En attente'), ok = A.appareils.filter(a => a.statut === 'Autorisé');
+  $('vue').innerHTML = globale + `<h2>Demandes d’accès</h2>`
+    + (att.map(a => `<div class="c"><div class="bonjour">${av(a.prenom, 1)}<div><div class="t">${esc(a.prenom)} demande l’accès</div><div class="s">le ${date(a.le)}. Vérifie avec elle ou lui avant d’accepter.</div></div></div>
+        <div class="row"><button onclick="acces(${a.row},'Autorisé')">Autoriser</button><button class="leger" onclick="acces(${a.row},'Refusé')">Refuser</button></div></div>`).join('')
+      || '<p class="vide">Aucune demande.</p>')
+    + `<h2>Téléphones autorisés</h2><div class="c">`
+    + ok.map(a => `<div class="fil" style="justify-content:space-between"><span class="bonjour" style="gap:10px">${av(a.prenom, 1)}${esc(a.prenom)}</span>
+        <button class="lien" onclick="if(confirm('Retirer l’accès de ce téléphone ?'))acces(${a.row},'Révoqué')">Retirer</button></div>`).join('') + `</div>`
+    + `<h2>Qui a accès à quoi</h2>`
+    + DROITS.map(([cle, titre, aide]) => `<div class="c"><div class="t" style="font-size:16px">${esc(titre)}</div><div class="s">${esc(aide)}</div>
+        <div class="row">${S.profils.map(p => { const on = peut(cle, p);
+          return `<button class="${on ? '' : 'leger'}" aria-pressed="${on}" style="padding:7px 12px;font-size:15px" onclick="droit('${cle}',${js(p)},${!on})">${on ? '✓ ' : ''}${esc(p)}</button>`; }).join('')}</div></div>`).join('')
+    + `<h2>Dernières actions</h2>`
+    + A.journal.map(j => `<div class="c"><div class="s">${esc(j.le)}, ${esc(j.qui)}</div>
+        <div>${esc(j.action)} ${esc(j.ligne)} ${esc(j.colonne)}${j.avant || j.apres ? ` : ${esc(j.avant)} ➜ ${esc(j.apres)}` : ''}</div>
+        <div class="row">${j.annule ? '<span class="s">Annulé</span>' : j.annulable ? `<button class="leger" onclick="annuler(${j.row})">Annuler</button>` : ''}</div></div>`).join('');
+}
+async function droit(cle, p, oui){ S.droits = await run('droit', TOKEN, cle, p, oui); menu(); afficher(); }
+async function acces(row, st){ await run('statutAppareil', TOKEN, row, st); vueSteve(); }
+async function annuler(row){ await run('annuler', TOKEN, row); toast('Annulé'); vueSteve(); }
+
+demarrer();
+</script>
+</body>
+</html>
