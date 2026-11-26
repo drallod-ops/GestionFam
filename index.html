@@ -193,10 +193,19 @@ window.addEventListener('error', e => bloque('Erreur dans la page : ' + e.messag
 // Les onglets lisent cette mémoire sans attendre le serveur ; chaque écriture renvoie l'état à jour.
 const LECTURES = { taches: 'taches', leMois: 'mois', conseils: 'conseils', locataires: 'locataires', echeances: 'echeances', globale: 'globale', admin: 'admin' };
 function garder(t){
-  if (!t || t.state !== 'ok') return;
+  if (!t || t.state !== 'ok') return false;
+  const avant = S.cache ? JSON.stringify(Object.assign({}, S.cache, { le: 0 })) : '';
   S.cache = t; S.cache.le = Date.now();
+  if (avant === JSON.stringify(Object.assign({}, t, { le: 0 }))) return false; // rien de neuf
   try { localStorage.setItem('etat:' + TOKEN, JSON.stringify(t)); } catch (e) {}
+  return true;
 }
+// Ne jamais redessiner l'écran sous le doigt : seulement si rien n'a changé depuis 3 s
+// (aucun toucher, aucune saisie, aucun volet ouvert). Sinon les nouvelles données s'affichent à la prochaine navigation.
+let dernierToucher = 0;
+['pointerdown', 'touchstart', 'scroll', 'keydown'].forEach(ev => addEventListener(ev, () => { dernierToucher = Date.now(); }, { passive: true, capture: true }));
+const auRepos = () => Date.now() - dernierToucher > 3000 && !(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))
+  && !document.querySelector('#vue details[open]');
 async function run(f, ...a){
   const k = LECTURES[f], c = S.cache;
   if (k && c && (c.as || null) === (S.as || null) && c[k] != null && !(f === 'leMois' && a[2] && a[2] !== c.mois.mk)) return c[k];
@@ -212,9 +221,7 @@ function rafraichir(force){
   const as = S.as || null;
   enCours = appel({ f: 'tout', args: [TOKEN, as] }, true).then(r => {
     if ((S.as || null) !== as || !r.ok || r.ok.state !== 'ok') return;
-    garder(r.ok); S.droits = r.ok.droits;
-    const saisie = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
-    if (!saisie && !document.querySelector('details[open] textarea')) { menu(); afficher(); }
+    if (garder(r.ok) && auRepos()) { S.droits = r.ok.droits; menu(); afficher(); }
   }).catch(() => {}).finally(() => { enCours = null; });
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) rafraichir(true); });
@@ -264,9 +271,8 @@ async function demarrer(){
         : 'Ce téléphone n’a pas accès. Demande à Steve.'}</p></div>`;
     return;
   }
-  garder(r);
-  const saisie = deja && document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
-  if (!saisie) ouvrir(r);
+  const change = garder(r);
+  if (!deja || (change && auRepos())) ouvrir(r);
 }
 function ouvrir(r){ S.moi = r.prenom; S.isSteve = r.isSteve; S.profils = r.profils; S.droits = r.droits; menu(); afficher(); }
 // « Voir l'app comme » : un seul appel pour charger l'état de la personne
