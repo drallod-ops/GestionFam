@@ -189,20 +189,49 @@ function bloque(m){ if (!/Chargement/.test($('vue').textContent)) return toast(m
   $('vue').innerHTML = `<div class="c"><p class="t">Ça ne charge pas</p><p>${esc(m)}</p><p class="s">Fais une capture d’écran et envoie-la à Steve.</p>
     <div class="row"><button onclick="location.reload()">Réessayer</button></div></div>`; }
 window.addEventListener('error', e => bloque('Erreur dans la page : ' + e.message));
-// text/plain : pas de contrôle CORS préalable, Apps Script accepte la demande telle quelle.
+// Rapidité : tout l'état arrive en un seul appel (« tout ») et reste en mémoire.
+// Les onglets lisent cette mémoire sans attendre le serveur ; chaque écriture renvoie l'état à jour.
+const LECTURES = { taches: 'taches', leMois: 'mois', conseils: 'conseils', locataires: 'locataires', echeances: 'echeances', globale: 'globale', admin: 'admin' };
+function garder(t){
+  if (!t || t.state !== 'ok') return;
+  S.cache = t; S.cache.le = Date.now();
+  try { localStorage.setItem('etat:' + TOKEN, JSON.stringify(t)); } catch (e) {}
+}
 async function run(f, ...a){
-  const stop = new AbortController(), h = setTimeout(() => stop.abort(), 30000);
+  const k = LECTURES[f], c = S.cache;
+  if (k && c && (c.as || null) === (S.as || null) && c[k] != null && !(f === 'leMois' && a[2] && a[2] !== c.mois.mk)) return c[k];
+  const ecrit = !k && !['tout', 'init', 'demanderAcces'].includes(f);
+  const r = await appel({ f, args: a, tout: ecrit ? [TOKEN, S.as || null] : undefined });
+  if (r.tout) garder(r.tout);
+  return r.ok;
+}
+// Rafraîchit en arrière-plan (onglet ouvert depuis plus d'une minute, retour dans l'app) sans gêner la saisie.
+let enCours = null;
+function rafraichir(force){
+  if (enCours || !S.cache || (!force && Date.now() - S.cache.le < 60000)) return;
+  const as = S.as || null;
+  enCours = appel({ f: 'tout', args: [TOKEN, as] }, true).then(r => {
+    if ((S.as || null) !== as || !r.ok || r.ok.state !== 'ok') return;
+    garder(r.ok); S.droits = r.ok.droits;
+    const saisie = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if (!saisie && !document.querySelector('details[open] textarea')) { menu(); afficher(); }
+  }).catch(() => {}).finally(() => { enCours = null; });
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) rafraichir(true); });
+// text/plain : pas de contrôle CORS préalable, Apps Script accepte la demande telle quelle.
+async function appel(q, discret){
+  const stop = new AbortController(), h = setTimeout(() => stop.abort(), 30000), f = q.f;
   let r;
   try {
     const rep = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ f, args: a }), signal: stop.signal, redirect: 'follow' });
+      body: JSON.stringify(q), signal: stop.signal, redirect: 'follow' });
     r = await rep.json();
   } catch (e) {
     const m = e.name === 'AbortError' ? 'Le serveur ne répond pas (' + f + '). Vérifie la connexion, puis réessaie.' : 'Impossible de joindre le serveur. Vérifie la connexion.';
-    bloque(m); throw e;
+    if (!discret) bloque(m); throw e;
   } finally { clearTimeout(h); }
-  if (r.err) { const m = String(r.err).replace(/^(Error|Exception|Erreur)\s*:\s*/i, ''); bloque(m); throw new Error(m); }
-  return r.ok;
+  if (r.err) { const m = String(r.err).replace(/^(Error|Exception|Erreur)\s*:\s*/i, ''); if (!discret) bloque(m); throw new Error(m); }
+  return r;
 }
 const profil = () => S.as || S.moi;
 const peut = (cle, p) => ((S.droits || {})[cle] || []).includes(p || profil());
@@ -220,7 +249,12 @@ function remarque(r){
 
 // ---------- Accès ----------
 async function demarrer(){
-  const r = await run('init', TOKEN);
+  // Lancement : on affiche tout de suite le dernier état gardé sur le téléphone, puis la version à jour.
+  let deja = false;
+  try { const snap = JSON.parse(localStorage.getItem('etat:' + TOKEN) || 'null');
+    if (snap && snap.state === 'ok' && !snap.as) { S.cache = snap; S.cache.le = 0; ouvrir(snap); deja = true; } } catch (e) {}
+  let r;
+  try { r = await run('tout', TOKEN, null); } catch (e) { if (deja) toast('Pas de connexion : données du dernier lancement.'); return; }
   if (r.state === 'nouveau') return ecranDemande();
   if (r.state !== 'ok') {
     $('haut').innerHTML = `<h1>Gestion Fam</h1>`;
@@ -230,8 +264,16 @@ async function demarrer(){
         : 'Ce téléphone n’a pas accès. Demande à Steve.'}</p></div>`;
     return;
   }
-  S.moi = r.prenom; S.isSteve = r.isSteve; S.profils = r.profils; S.droits = r.droits;
-  menu(); afficher();
+  garder(r);
+  const saisie = deja && document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if (!saisie) ouvrir(r);
+}
+function ouvrir(r){ S.moi = r.prenom; S.isSteve = r.isSteve; S.profils = r.profils; S.droits = r.droits; menu(); afficher(); }
+// « Voir l'app comme » : un seul appel pour charger l'état de la personne
+async function voirComme(v){
+  S.as = v === S.moi ? null : v;
+  $('vue').innerHTML = '<p class="vide">Chargement…</p>';
+  const r = await run('tout', TOKEN, S.as); garder(r); menu(); afficher(1);
 }
 function ecranDemande(){
   $('haut').innerHTML = `<h1>Bienvenue</h1>`;
@@ -256,7 +298,7 @@ function menu(){
   if (!tabs.find(t => t[0] === S.onglet) && S.onglet !== 'conseils') S.onglet = 'mes';
   if (S.onglet === 'conseils' && !peut('conseils')) S.onglet = 'mes';
   $('nav').hidden = !tabs.length;
-  $('nav').innerHTML = tabs.map(t => `<button class="${t[0]===S.onglet?'on':''}" onclick="S.onglet='${t[0]}';menu();afficher(1)"><span>${t[1]}</span>${t[2]}</button>`).join('');
+  $('nav').innerHTML = tabs.map(t => `<button class="${t[0]===S.onglet?'on':''}" onclick="S.onglet='${t[0]}';menu();afficher(1);rafraichir()"><span>${t[1]}</span>${t[2]}</button>`).join('');
 }
 function afficher(haut){ if (haut) window.scrollTo(0,0); ({mes:vueMes, mois:vueMois, taches:vueDossiers, steve:vueSteve, conseils:vueConseils})[S.onglet](); }
 
@@ -312,7 +354,7 @@ async function vueMes(){
   const retard = miennes.filter(t => t.ech && t.ech < auj()).length;
   const actuel = document.documentElement.dataset.ambiance || 'aube';
   $('haut').innerHTML = `<div class="bonjour">${av(p)}<h1>${h < 18 ? 'Bonjour' : 'Bonsoir'} ${esc(p)}</h1></div>
-    <div class="outils">${S.isSteve ? `<label class="changer" style="margin:0">Voir l’app comme <select onchange="S.as=this.value===S.moi?null:this.value;menu();afficher(1)">${S.profils.map(x=>`<option ${x===p?'selected':''}>${esc(x)}</option>`).join('')}</select></label>` : ''}
+    <div class="outils">${S.isSteve ? `<label class="changer" style="margin:0">Voir l’app comme <select onchange="voirComme(this.value)">${S.profils.map(x=>`<option ${x===p?'selected':''}>${esc(x)}</option>`).join('')}</select></label>` : ''}
       <button class="lien" onclick="S.choixTheme=!S.choixTheme;afficher()">🎨 Thème</button></div>
     ${S.choixTheme ? `<div class="themes">${THEMES.map(t => `<button class="${t[0]===actuel?'on':''}" style="background:${t[2]}" aria-label="${t[1]}" title="${t[1]}" onclick="theme('${t[0]}');afficher()"></button>`).join('')}</div>` : ''}`;
   const soleil = miennes.length
