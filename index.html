@@ -37,6 +37,8 @@
 .outils{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
+/* iPhone : pas de rebond en bout de page, sinon la barre du bas est entraînée avec */
+html,body{overscroll-behavior:none}
 *{box-sizing:border-box}
 body{margin:0;background:linear-gradient(180deg,var(--aube) 0,var(--fond) 340px) no-repeat,var(--fond);min-height:100vh;color:var(--texte);
   font:17px/1.4 ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Nunito","Helvetica Neue",sans-serif;
@@ -289,7 +291,7 @@ function ecranDemande(){
     <div class="row"><button onclick="demander()">Demander l’accès</button></div></div>`;
 }
 async function demander(){
-  const jeton = await run('demanderAcces', $('nom').value);
+  const jeton = String(await run('demanderAcces', $('nom').value)).split('t=').pop(); // le serveur peut renvoyer une URL complète
   try { localStorage.setItem('jeton', jeton); } catch (e) {}
   const url = location.origin + location.pathname + '?t=' + encodeURIComponent(jeton);
   $('vue').innerHTML = `<div class="c"><p class="t">Demande envoyée</p>
@@ -608,7 +610,9 @@ let vueSteve = async function(){
         <div>${esc(j.action)} ${esc(j.ligne)} ${esc(j.colonne)}${j.avant || j.apres ? ` : ${esc(j.avant)} ➜ ${esc(j.apres)}` : ''}</div>
         <div class="row">${j.annule ? '<span class="s">Annulé</span>' : j.annulable ? `<button class="leger" onclick="annuler(${j.row})">Annuler</button>` : ''}</div></div>`).join('');
 }
-async function droit(cle, p, oui){ S.droits = await run('droit', TOKEN, cle, p, oui); menu(); afficher(); }
+// Bascule tout de suite à l'écran, le serveur suit ; en cas d'erreur, on remet comme avant.
+function basculer(cle, p, oui){ const l = (S.droits[cle] || []).filter(x => x !== p); S.droits = Object.assign({}, S.droits, { [cle]: oui ? l.concat(p) : l }); menu(); afficher(); }
+async function droit(cle, p, oui){ basculer(cle, p, oui); try { await run('droit', TOKEN, cle, p, oui); } catch (e) { basculer(cle, p, !oui); } }
 async function acces(row, st){ await run('statutAppareil', TOKEN, row, st); vueSteve(); }
 async function annuler(row){ await run('annuler', TOKEN, row); toast('Annulé'); vueSteve(); }
 
