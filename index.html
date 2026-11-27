@@ -29,8 +29,13 @@
 :root[data-ambiance="ocean"]{--aube:#C9E8F5;--fond:#E6F1F4;--encre:#155E75;--soleil:#F2C14E;--carte:#FFFFFF;--texte:#1E2A38;--doux:#5F6B78;--trait:#DCE3E0;color-scheme:light}
 :root[data-ambiance="jardin"]{--aube:#DDEFC9;--fond:#EEF4E6;--encre:#2F5D3A;--soleil:#F0B94A;--carte:#FFFFFF;--texte:#1E2A38;--doux:#5F6B78;--trait:#DCE3E0;color-scheme:light}
 :root[data-ambiance="nuit"]{--fond:#10161F;--carte:#1E2836;--texte:#F2F5F8;--doux:#B4BFCC;--trait:#334155;--encre:#8FB4E3;--soleil:#F4C25F;--aube:#22304A;color-scheme:dark}
-:root[data-ambiance="nuit"] button:not(.leger):not(.lien):not(.themes button),:root[data-ambiance="nuit"] .seg button.on{color:#0E1520}
-@media (prefers-color-scheme: dark){ :root[data-ambiance="aube"] button:not(.leger):not(.lien):not(.themes button),:root[data-ambiance="aube"] .seg button.on{color:#0E1520} }
+:root[data-ambiance="nuit"] button:not(.leger):not(.lien):not(.themes button):not(nav button):not(.seg button),:root[data-ambiance="nuit"] .seg button.on{color:#0E1520}
+/* mode sombre de l'iPhone : lavande, océan et jardin passent en sombre en gardant leur teinte */
+@media (prefers-color-scheme: dark){
+  :root[data-ambiance="lavande"],:root[data-ambiance="ocean"],:root[data-ambiance="jardin"]{--fond:#10161F;--carte:#1E2836;--texte:#F2F5F8;--doux:#B4BFCC;--trait:#334155;color-scheme:dark}
+  :root[data-ambiance="lavande"]{--aube:#2A2340;--encre:#B9A8F0} :root[data-ambiance="ocean"]{--aube:#16313B;--encre:#7CC7DE} :root[data-ambiance="jardin"]{--aube:#1F2E1C;--encre:#9CCB8A}
+}
+@media (prefers-color-scheme: dark){ :root:not([data-ambiance="nuit"]) button:not(.leger):not(.lien):not(.themes button):not(nav button):not(.seg button),:root:not([data-ambiance="nuit"]) .seg button.on{color:#0E1520} }
 .themes{display:flex;gap:10px;margin-top:10px}
 .themes button{width:40px;height:40px;border-radius:50%;padding:0;border:3px solid var(--carte);box-shadow:0 0 0 1px var(--trait)}
 .themes button.on{box-shadow:0 0 0 3px var(--encre)}
@@ -101,7 +106,7 @@ details.loc>summary::-webkit-details-marker{display:none}
 .fiche dt{color:var(--doux)}
 :root[data-ambiance="nuit"] .note{background:#273344}
 :root[data-ambiance="nuit"] .attente{color:#F5B54A}
-@media (prefers-color-scheme: dark){ :root[data-ambiance="aube"] .note{background:#273344} :root[data-ambiance="aube"] .attente{color:#F5B54A} }
+@media (prefers-color-scheme: dark){ :root:not([data-ambiance="nuit"]) .note{background:#273344} :root:not([data-ambiance="nuit"]) .attente{color:#F5B54A} }
 .titre-mois{font:inherit;font-size:30px;font-weight:700;letter-spacing:-.01em;border:0;background:transparent;padding:0 28px 0 0;width:auto;color:var(--texte);
   appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--doux) 50%),linear-gradient(135deg,var(--doux) 50%,transparent 50%);
   background-position:calc(100% - 12px) 55%,calc(100% - 6px) 55%;background-size:6px 6px;background-repeat:no-repeat} .fiche dd{margin:0;font-weight:600}
@@ -205,6 +210,15 @@ function garder(t){
 // Ne jamais redessiner l'écran sous le doigt : seulement si rien n'a changé depuis 3 s
 // (aucun toucher, aucune saisie, aucun volet ouvert). Sinon les nouvelles données s'affichent à la prochaine navigation.
 let dernierToucher = 0;
+// iPhone : le clic part de l'endroit où le doigt se lève. Si l'écran vient d'être redessiné (réponse du serveur,
+// page qui glisse quand une carte disparaît), le doigt visait l'ancien affichage : ce clic est ignoré.
+let redessin = 0, appui = 0;
+const obs = new MutationObserver(() => { redessin = Date.now(); });
+['vue', 'haut'].forEach(id => obs.observe($(id), { childList: true, subtree: true }));
+addEventListener('pointerdown', () => { appui = Date.now(); }, true);
+addEventListener('click', e => { // e.detail = 0 : clavier, jamais bloqué ; la barre du bas ne bouge pas, jamais bloquée
+  if (e.detail && appui - redessin < 500 && !e.target.closest('#nav')) { e.preventDefault(); e.stopPropagation(); }
+}, true);
 ['pointerdown', 'touchstart', 'scroll', 'keydown'].forEach(ev => addEventListener(ev, () => { dernierToucher = Date.now(); }, { passive: true, capture: true }));
 const auRepos = () => Date.now() - dernierToucher > 3000 && !(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))
   && !document.querySelector('#vue details[open]');
